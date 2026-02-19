@@ -1,0 +1,202 @@
+The following examples show how to use the YouTube Data API (v3) to perform functions related to videos.
+
+Retrieve a channel's uploaded videos
+This example retrieves the videos uploaded to a particular channel. The example has two steps:
+
+Step 1: Retrieve the playlist ID for the channel's uploaded videos
+
+Call the channels.list method to retrieve the ID of the playlist that contains the channel's uploaded videos. The request's part parameter value must include contentDetails as one of the channel resource parts being retrieved. In the API response, the contentDetails.relatedPlaylists.uploads property contains the playlist ID.
+
+There are several ways to identify the channel:
+
+Set the mine parameter value to true to retrieve information for the currently authenticated user's YouTube channel. Your request must be authorized using OAuth 2.0.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.channels.list?
+        part=contentDetails
+        &mine=true
+Set the forUsername parameter to a YouTube username to retrieve information for the channel associated with that username. This example sets the forUsername parameter value to Google to retrieve information for Google's official YouTube channel.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.channels.list?
+        part=contentDetails
+        &forUsername=Google
+Set the id parameter to the YouTube channel ID that uniquely identifies the channel for which you are retrieving information. This example sets the id parameter to UCK8sQmJBp8GCxrOtXWBpyEA, which also identifies Google's official YouTube channel.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.channels.list?
+        part=contentDetails
+        &id=UCK8sQmJBp8GCxrOtXWBpyEA
+Step 2: Retrieve the list of uploaded videos
+
+Call the playlistItems.list method to retrieve the list of uploaded videos. Set the playlistId parameter's value to the value obtained in step 1. In this example, the parameter value is set to UUK8sQmJBp8GCxrOtXWBpyEA, which is the list of videos uploaded to Google's official YouTube channel.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.playlistItems.list?
+        part=snippet,contentDetails,status
+        &playlistId=UUK8sQmJBp8GCxrOtXWBpyEA
+Retrieve most popular videos
+This example shows how to retrieve a list of YouTube's most popular videos, which are selected using an algorithm that combines many different signals to determine overall popularity.
+
+To retrieve the most popular videos list, call the videos.list method and set the chart parameter's value to mostPopular. The mostPopular chart includes trending music, movies, and gaming videos.
+
+Then, you can optionally set the following parameters:
+
+regionCode: Instructs the API to return a list of videos for the specified region. The parameter value is an ISO 3166-1 alpha-2 country code. You can use the i18nRegions.list method to retrieve a list of region codes that YouTube supports.
+videoCategoryId: Identifies the video category for which the most popular videos should be retrieved. You can use the videoCategories.list method to retrieve a list of category IDs that YouTube supports.
+For example, the following request retrieves the most popular sports videos in Spain:
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videos.list?
+        part=snippet
+        &chart=mostPopular
+        &regionCode=es
+        &videoCategoryId=17
+  
+Upload a video
+Since the APIs Explorer does not support the ability to upload files, this description does not link to an executable example. The following resources will help you to modify your application so that it can upload videos using the v3 API:
+
+The documentation for the API's videos.insert method contains several code samples that explain how to upload a video using different programming languages.
+
+The Resumable Uploads guide explains the sequence of HTTP requests that an application uses to upload videos using a resumable uploading process. The guide is primarily intended for developers who cannot use the Google API client libraries, some of which provide native support for resumable uploads.
+
+The JavaScript example for uploading a video uses CORS (cross-origin resource sharing) to demonstrate how to upload a video file via a web page. The CORS upload library that the v3 API uses naturally supports resumable uploading. In addition, the example demonstrates how to check the status of an uploaded video by retrieving the processingDetails part of the video resource as well as how to handle status changes for the uploaded video.
+
+Check the status of an uploaded video
+This example shows how to check the status of an uploaded video. An uploaded video will immediately be visible in the authenticated user's uploaded videos feed. However, the video will not be visible on YouTube until it has been processed.
+
+Step 1: Upload the video
+
+Call the videos.insert method to upload the video. If the request is successful, the API response will contain a video resource that identifies the unique video ID for the uploaded video.
+
+Step 2: Check the video's status
+
+Call the videos.list method to check the video's status. Set the id parameter's value to the video ID obtained in step 1. Set the part parameter's value to processingDetails.
+
+If the request is handled successfully, the API response will contain a video resource. Check the value of the processingDetails.processingStatus property to determine whether YouTube is still processing the video. The property's value will change to something other than processing, such as succeeded or failed, when YouTube has finished processing the video.
+
+The request body is a video resource in which the id property specifies the video ID of the video that you are deleting. In this example, the resource also contains a recordingDetails object.
+
+The request below checks the status of a video. To complete the request in the APIs Explorer, you need to set the id property's value.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videos.list?
+        part=snippet,processingDetails
+        &id=VIDEO_ID
+Note: Your application could poll the API to periodically check the status of a newly uploaded video. Once the video is processed, your application could create a bulletin or proceed with another action contingent on the video's status.
+
+Update a video
+This example shows how to update a video to add information about the time and place where the video was recorded. The example has the following steps:
+
+Step 1: Retrieve the video ID
+
+Follow the steps above to retrieve uploaded videos for the currently authenticated user's channel. The list could be used to display a list of videos, using each video's ID as a key.
+
+Note: There are numerous other ways to obtain video IDs, such as retrieving search results or listing items in a playlist. However, since a video can only be updated by its owner, retrieving a list of videos owned by the user authorizing the API request is a likely first step in this process.
+
+Step 2: Update a video
+
+Call the videos.update method to update a specific video. Set the part parameter's value to recordingDetails. (The parameter value depends on which video's metadata fields are being updated.)
+
+The request body is a video resource in which the id property specifies the video ID of the video that you are updating. In this example, the resource also contains a recordingDetails object.
+
+The sample resource below indicates that the video was recorded on October 30, 2013, in Boston:
+
+
+{
+  "id": "VIDEO_ID",
+  "recordingDetails": {
+    "location": {
+      "latitude": "42.3464",
+      "longitude": "-71.0975"
+    }
+    "recordingDate": "2013-10-30T23:15:00.000Z"
+  }
+}
+To complete the request in the APIs Explorer, you need to set the id property's value.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videos.update?
+        part=snippet
+Upload a custom thumbnail image and set it for a video
+You can use the v3 API's thumbnails.set method to upload a custom thumbnail image and set it for a video. In your request, the videoId parameter's value identifies the video for which the thumbnail will be used.
+
+This query cannot be tested using the APIs Explorer because the APIs Explorer does not support the ability to upload media files, which is a requirement for this method.
+
+Related code samples: PHP, Python
+
+Delete a video
+This example shows how to delete a video. The example has the following steps:
+
+Step 1: Retrieve the video ID
+
+Follow the steps above to retrieve uploaded videos for the currently authenticated user's channel. The list could be used to display a list of videos, using each video's ID as a key.
+
+Note: There are numerous other ways to obtain video IDs, such as retrieving search results or listing items in a playlist. However, since a video can only be deleted by its owner, retrieving a list of videos owned by the user authorizing the API request is a likely first step in this process.
+
+Step 2: Delete a video
+
+Call the videos.delete method to delete a specific video. In the request, the id parameter specifies the video ID of the video that you are deleting. The request must be authorized using OAuth 2.0. If you are testing this query in the APIs Explorer, you will need to substitute a valid video ID for the id parameter value.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videos.delete?
+        id=VIDEO_ID
+Report an abusive video
+This example shows how to report a video that contains abusive content. The example has the following steps:
+
+Step 1: Retrieve IDs that explain why the video is being reported
+
+Send an authorized request to the videoAbuseReportReasons.list method to retrieve a list of valid reasons for flagging a video. The sample videoAbuseReportReason resource below contains information for flagging a video that contains spam or misleading content.
+
+
+{
+  "kind": "youtube#videoAbuseReportReason",
+  "etag": "\"tbWC5XrSXxe1WOAx6MK9z4hHSU8/Or2VqBIilpHU7j__oPzUFCvGVBw\"",
+  "id": "S",
+  "snippet": {
+    "label": "Spam or misleading",
+    "secondaryReasons": [
+      {
+        "id": "27",
+        "label": "Spam or mass advertising"
+      },
+      {
+        "id": "28",
+        "label": "Misleading thumbnail"
+      },
+      {
+        "id": "29",
+        "label": "Malware or phishing"
+      },
+      {
+        "id": "30",
+        "label": "Pharmaceutical drugs for sale"
+      },
+      {
+        "id": "31",
+        "label": "Other misleading info"
+      }
+    ]
+  }
+}
+As shown in the resource, this reason is associated with a list of secondary reasons. When flagging a video for containing spam, you need to provide the ID for the reason and are strongly encouraged to provide a secondary reason as well.
+
+Step 2: Flag the video for abusive content
+
+Send an authorized request to the videos.reportAbuse method to actually report the video. The request body is a JSON object that identifies both the video being flagged and the reason it is being flagged. As noted in step 1, for some types of reasons, a secondary reason is supported and strongly encouraged.
+
+The JSON object's videoId property identifies the video that is being flagged.
+The sample JSON object below flags a video for containing spam or misleading content and, more specifically, for using a misleading thumbnail image. As shown in the sample JSON object above, the ID for Spam or misleading content is S. The ID for a Misleading thumbnail is 28.
+
+
+{
+  "videoId": "VIDEO_ID",
+  "reasonId": "S",
+  "secondaryReasonId": "28",
+  "comments": "Testing the video flagging feature.",
+  "language": "en"
+}
+The videos.reportAbuse request must be authorized using OAuth 2.0. The link below loads the JSON object above in the APIs Explorer. To test the query, you need to substitute a valid video ID for the videoId property value. Please remember that submitting this request will actually flag the video.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.videos.reportAbuse

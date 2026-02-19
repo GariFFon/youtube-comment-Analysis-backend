@@ -1,0 +1,116 @@
+The comments.markAsSpam method is no longer supported.
+The following examples show how to use the YouTube Data API (v3) to perform functions related to comments.
+
+Retrieve comments for a video
+To retrieve a list of comment threads for a video, call the commentThreads.list method. Set the following parameter values in your request:
+
+part: Set the parameter value to snippet if you only want to retrieve top-level comments or to snippet,replies if you also want to retrieve replies to top-level comments. (Note that a commentThread resource does not necessarily contain all replies to a comment, and you need to use the comments.list method if you want to retrieve all replies for a particular comment.)
+
+videoId: Specify the YouTube video ID of the video for which you are retrieving comments.
+
+The request below retrieves comments and comment replies related to the video of the keynote speech at the 2014 Google I/O conference, which has the video ID wtLJPvx7-ys.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.commentThreads.list?
+part=snippet,replies
+&videoId=wtLJPvx7-ys
+Retrieve comments about or associated with a channel
+The API supports the ability to either retrieve comments threads about a channel or to retrieve all comment threads associated with a channel. In the latter case, the API could contain comments about the channel or about any of the channel's videos.
+
+To retrieve comments about a channel, follow the instructions for retrieving comments for a video. However, instead of setting the videoId parameter, set the channelId parameter to identify the channel.
+To retrieve comments associated with a channel, follow the instructions for retrieving comments for a video. However, instead of setting the videoId parameter, set the allThreadsRelatedToChannelId parameter to identify the channel.
+The request below retrieves all comment threads associated with the GoogleDevelopers YouTube channel:
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.commentThreads.list?
+part=snippet,replies
+&allThreadsRelatedToChannelId=UC_x5XG1OV2P6uZZ5FSM9Ttw
+Adding a comment
+Call the commentThreads.insert method to add a new, top-level comment to a channel or a video. Set the request's part parameter value to snippet. The body of the request is a commentThread resource in which the snippet.topLevelComment[].snippet[].textOriginal property contains the comment text. This request must be authorized using OAuth 2.0.
+
+To add a comment to a channel, use the snippet.channelId property to identify the channel.
+To add a comment to a video, use the snippet.channelId property to identify the channel that uploaded the video. Also use the snippet.videoId property to identify the video.
+The following sample request adds a comment to a video.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.commentThreads.insert?
+part=snippet
+The request inserts the resource shown below.
+
+
+{
+ "snippet": {
+  "channelId": "UC_x5XG1OV2P6uZZ5FSM9Ttw",
+  "topLevelComment": {
+   "snippet": {
+    "textOriginal": "This video is awesome!"
+   }
+  },
+  "videoId": "MILSirUni5E"
+ }
+}
+Reply to a comment
+Call the comments.insert method to reply to a comment. Set the request's part parameter value to snippet. The body of the request is a comment resource in which the snippet.textOriginal property contains the comment text. The snippet.parentId property identifies the comment associated with the reply, and it's value is a commentThread resource's ID. This request must be authorized using OAuth 2.0.
+
+The following sample request adds a reply to an existing comment.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.comments.insert?
+part=snippet
+The request inserts the resource shown below. To execute the request in the APIs Explorer, use the snippet.parentId property's value to identify the top-level comment associated with the reply. In a commentThread resource, the snippet.topLevelComment[].id property specifies the resource's unique ID.
+
+
+{
+  "snippet": {
+    "parentId": "COMMENT_THREAD_ID",
+    "textOriginal": "That is true."
+  }
+}
+Update a top-level comment or comment reply
+To update the text of a top-level comment or a reply to a top-level comment, call the comments.update method. Set the part parameter's value to snippet. In the request body, the id property identifies the comment that you are modifying and the new comment text.
+
+In a commentThread resource, which identifies a top-level comment, the snippet.topLevelComment[].id property specifies the comment's unique ID.
+In a comment resource, which can identify either a top-level comment or a reply to a comment, the id property specifies the comment's unique ID.
+The sample request below updates the text of an existing comment.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.comments.update?
+part=snippet
+The request body contains the JSON snippet shown below. To execute the request in the APIs Explorer, set the id property's value to identify the comment that you are updating. The request must be authorized by the comment's author.
+
+
+{
+  "id": "COMMENT_ID",
+  "snippet": {
+    "textOriginal": "That is true."
+  }
+}
+Set a comment's moderation status
+To set a comment's moderation status, call the comments.setModerationStatus method. This action is used when a channel owner moderates comments on the channel or the channel's videos.
+
+When calling this method, set the id parameter's value to identify the comment. Also set the moderationStatus parameter to the desired status. A comment's status can only be adjusted by the owner of the channel where the comment appears.
+
+Step 1: Retrieve comments that are being held for review
+
+Call the commentThreads.list method to retrieve comments for the channel or video. Set the moderationStatus parameter's value to heldForReview. The API response could be used to display a list of comments with an option for the channel owner to publish or reject each one.
+
+Step 2: Update the moderation status of a comment
+
+Call the comments.setModerationStatus method to update the comment's status. Use the id parameter's value to specify the comment's unique ID. Set the moderationStatus parameter to either published or rejected. If you are rejecting a comment, you can also set the banAuthor parameter to true to prevent the author from making additional comments on the channel or video.
+
+Note: The API does not provide a way to list or otherwise discover rejected comments. However, you can still change the moderation status of a rejected comment to published if the comment's unique ID is known. In addition, once a comment's moderation status is updated to either published or rejected, the moderation status cannot be changed back to heldForReview.
+
+Remove a comment
+This example shows how to delete a comment. The example has the following steps:
+
+Step 1: Retrieve the comment ID
+
+Follow the steps above to retrieve a list of comments for a video or channel. Remember that a comment can only be deleted by its author, so you will need to compare the value of a comment resource's snippet.authorChannelId.value property to the authenticated user's channel ID to determine whether the user can delete that particular comment.
+
+Step 2: Delete the comment or comment thread
+
+Once you have identified the ID of the comment thread or comment that you are deleting, call the comments.delete method to delete that comment. Use the id parameter value to identify the comment ID or comment thread ID that you are deleting. The request must be authorized using OAuth 2.0. If you are testing this query in the APIs Explorer, you will need to substitute a valid comment ID or comment thread ID for the id parameter value in the request below.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.comments.delete?
+id=COMMENT_ID

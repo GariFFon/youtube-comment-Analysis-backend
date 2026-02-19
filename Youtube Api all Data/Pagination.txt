@@ -1,0 +1,28 @@
+The following example shows how to retrieve additional sets of results for YouTube Data API (v3) queries.
+
+The API uses the maxResults parameter to indicate how many items should be included in an API response. Almost all of the API's list methods (videos.list, playlists.list, etc.) support that parameter.
+
+If additional results are available for a query, then the API response will contain either a nextPageToken property, a prevPageToken property, or both. Those properties' values can then be used to set the pageToken parameter to retrieve an additional page of results.
+
+For example, the following query retrieves search results for the 10 most viewed videos matching the query "skateboarding dog":
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.search.list?
+        part=snippet
+        &maxResults=10
+        &order=viewCount
+        &q=skateboarding+dog
+        &type=video
+The API response contains the first 10 matches for the query as well as a nextPageToken property that can be used to retrieve the next 10 results:
+
+The query below retrieves the next 10 results for the query:
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.search.list?
+        part=snippet
+        &maxResults=10
+        &order=viewCount
+        &pageToken=CAoQAA
+        &q=skateboarding+dog
+        &type=video
+Note: You may need to update the value of the pageToken parameter to complete this request in the APIs Explorer. Execute the query that retrieves the first 10 results to obtain the correct pageToken parameter value.

@@ -1,0 +1,47 @@
+The following examples show how to retrieve partial API responses in the YouTube Data API (v3).
+
+Note: The API's getting started guide provides more detail about partial requests and responses.
+
+The v3 API allows, and actually requires, the retrieval of partial resources so that applications avoid transferring, parsing, and storing unneeded data. This approach also ensures that the API uses network, CPU, and memory resources more efficiently.
+
+The API supports two request parameters, part and fields, that enable you to identify the resource properties that should be included in API responses. The part parameter also identifies the properties that should be set by API requests that insert or update resources.
+
+Note that if an update request does not specify a value for a resource property that previously had a value, the existing value will be deleted if the following conditions are true:
+
+The property's value can be modified by the request. (For example, when updating a video resource, you can update the value of the snippet.description property, but you cannot update the value of the snippet.thumbnails object.
+
+The request's part parameter value identifies the resource part that contains the property.
+
+Example
+For example, suppose you want to update the video resource shown below. (Note that all of the properties shown below can be updated via the API, and resource properties not relevant to the example have been omitted.)
+
+
+{
+  "snippet": {
+    "title": "Old video title",
+    "description": "Old video description",
+    "tags": ["keyword1","keyword2","keyword3"],
+    "categoryId: 22
+  },
+  "status": {
+    "privacyStatus": "private",
+    "publishAt": "2014-09-01T12:00:00.0Z",
+    "license": "youtube",
+    "embeddable": True,
+    "publicStatsViewable": True
+  }
+}
+You call the videos.update method and set the part parameter value to snippet. The body of the API request contains the following resource:
+
+
+{
+  "snippet": {
+    "title": "New video title",
+    "tags": ["keyword1","keyword2","keyword3"],
+    "categoryId: 22
+  }
+}
+This request updates the video's title, deletes its description, and does not change its tags or category ID. The video's description is deleted because the request does not specify a value for the snippet.description property.
+
+The properties in the status object are not affected at all because the part parameter value did not include status as one of the parts that the request would update. In fact, if the body of the API request included the status object, the API would return a 400 (Bad Request) HTTP response due to an unexpected part being included in the request body.
+

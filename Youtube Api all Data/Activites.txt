@@ -1,0 +1,24 @@
+The following examples show how to use the YouTube Data API (v3) to perform functions related to user activity.
+
+Retrieve a list of channel activities
+To retrieve a list of events related to a particular channel, call the activities.list method using one of the following two methods to identify the channel:
+
+Set the mine parameter value to true to retrieve a list of the currently authenticated user's activities. Your request must be authorized using OAuth 2.0.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.activities.list?
+        part=snippet,contentDetails
+        &mine=true
+Set the channelId parameter to the YouTube channel ID that uniquely identifies the channel for which you are retrieving an activity list. This example sets the channelId parameter to UCK8sQmJBp8GCxrOtXWBpyEA, which also identifies Google's official YouTube channel.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.activities.list?
+        part=snippet,contentDetails
+        &channelId=UCK8sQmJBp8GCxrOtXWBpyEA
+Retrieve a list of subscription activities
+Subscription activities refer to events associated with channels that the authenticated user subscribes to. To retrieve a list of subscription activities for the currently authenticated user, call the activities.list method and set the home parameter's value to true. The request must be authorized using OAuth 2.0.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.activities.list?
+        part=snippet,contentDetails
+        &home=true

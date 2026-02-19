@@ -1,0 +1,54 @@
+The following examples demonstrate how to complete several different types of search requests in the v3 API.
+
+Videos
+This example calls the search.list method to find the most viewed, high-definition (HD) videos associated with the query "skateboarding dog." The query sets the order, part, q, type, and videoDefinition parameters.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.search.list?
+        part=snippet
+        &order=viewCount
+        &q=skateboarding+dog
+        &type=video
+        &videoDefinition=high
+See the search.list method's documentation for code samples.
+
+Playlists
+This example shows how to find playlists matching the query term "GoogleDevelopers." It calls the search.list method and sets the type parameter's value to playlist so that the result set only includes playlists.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.search.list?
+        part=snippet
+        &q=GoogleDevelopers
+        &type=playlist
+Channels
+This example shows how to find channels matching the query term "travel." It calls the search.list method and sets the type parameter's value to channel so that the result set only includes channels.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.search.list?
+        part=snippet
+        &q=travel
+        &type=channel
+Results relevant to a specific language
+This example calls the search.list method to find search results that are most relevant to a specific language. The example shows that the query term is marine (q=marine) and that the API response should contain results most relevant to the French language (relevanceLanguage=fr).
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.search.list?
+        part=snippet
+        &q=marine
+        &relevanceLanguage=fr
+Note that the request does not set a value for the type parameter, which means each search result could reference a video, playlist, or channel.
+
+Videos uploaded via the developer's app or website
+This example shows how to use the forDeveloper parameter to restrict a search to only retrieve videos uploaded via the developer's application or website. This parameter can be used in conjunction with optional search parameters, like the q parameter.
+
+Note: This query does not actually return results in the APIs Explorer because the APIs Explorer doesn't support video uploads. You can run this query for your own application outside of the APIs Explorer, but you can't get results for your application using the APIs Explorer.
+
+Each uploaded video is automatically tagged with the project number that is associated with the developer's application in the Google API Console.
+
+When a search request subsequently sets the forDeveloper parameter to true, the API service uses the request's authorization credentials to identify the developer. Thus, a developer can restrict results to videos uploaded through the developer's own app or website but not to videos uploaded through other apps or sites.
+
+
+https://developers.google.com/apis-explorer/#p/youtube/v3/youtube.search.list?
+        part=snippet
+        &q=fun
+        &forDeveloper=true
