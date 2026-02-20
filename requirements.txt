@@ -7,3 +7,7 @@ google-genai
 python-dotenv
 motor
 beanie
+google-auth
+pyjwt
+passlib
+bcrypt

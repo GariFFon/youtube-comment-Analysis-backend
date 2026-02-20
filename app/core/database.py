@@ -3,6 +3,7 @@ from beanie import init_beanie
 
 from app.core.config import settings
 from app.models.schemas import VideoAnalysisReport
+from app.models.user import User, OTPRecord
 
 async def init_db():
     """
@@ -16,7 +17,9 @@ async def init_db():
     await init_beanie(
         database=client.get_default_database(),
         document_models=[
-            VideoAnalysisReport
+            VideoAnalysisReport,
+            User,
+            OTPRecord
         ]
     )
     

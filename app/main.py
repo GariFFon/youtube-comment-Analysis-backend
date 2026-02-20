@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.core.database import init_db
 from app.api.endpoints import router as analysis_router
+from app.api.auth import router as auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +30,9 @@ app.add_middleware(
 
 # Register our massive new Analysis endpoint!
 app.include_router(analysis_router, prefix="/api")
+
+# Register Auth endpoint
+app.include_router(auth_router, prefix="/api")
 
 @app.get("/")
 def read_root():
