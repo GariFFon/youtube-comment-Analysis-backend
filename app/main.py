@@ -37,3 +37,8 @@ app.include_router(auth_router, prefix="/api")
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the YouTube Comment Analysis API! MongoDB is connected."}
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    from fastapi.responses import Response
+    return Response(status_code=204)

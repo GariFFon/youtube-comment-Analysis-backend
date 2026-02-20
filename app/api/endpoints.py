@@ -130,3 +130,33 @@ async def analyze_youtube_video(
         await user.replace()
 
     return report
+
+@router.get("/user/history")
+async def get_user_history(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Fetches the history of analyzed videos for the current user.
+    Returns a lightweight summary of each report to display on the profile page.
+    """
+    user_dict = await get_current_user(credentials)
+    current_user_id = user_dict["id"]
+    
+    # Fetch all reports owned by the user
+    reports = await VideoAnalysisReport.find({"user_id": current_user_id}).to_list()
+    
+    # Build a condensed response to save bandwidth (exclude the massive comments array)
+    history = []
+    for r in reports:
+        history.append({
+            "video_id": r.video.video_id,
+            "title": r.video.title,
+            "thumbnail_url": r.video.thumbnail_url,
+            "channel_name": r.video.channel_name,
+            "total_comments_analyzed": r.total_comments_analyzed,
+            "positive_percentage": r.positive_percentage,
+            "negative_percentage": r.negative_percentage,
+            "neutral_percentage": r.neutral_percentage,
+            "summary": r.comprehensive_summary
+        })
+        
+    # Reverse so newest are first
+    return history[::-1]
