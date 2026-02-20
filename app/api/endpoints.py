@@ -27,9 +27,30 @@ async def analyze_youtube_video(
 
     # 1. Check if we already have this in MongoDB!
     if not force_refresh:
+        # Check if the current user already has this exact report
         existing_report = await VideoAnalysisReport.find_one({"video.video_id": video_id, "user_id": current_user_id})
         if existing_report:
             return existing_report
+            
+        # If the user doesn't have it, check if ANY user has already analyzed this video!
+        # This saves immense API quota and time.
+        any_report = await VideoAnalysisReport.find_one({"video.video_id": video_id})
+        if any_report:
+            # Duplicate the report for current user
+            report_dict = any_report.dict(exclude={"id"})
+            report_dict["user_id"] = current_user_id
+            report_dict["is_public"] = False  # Reset public status for the new user's copy
+            
+            new_report = VideoAnalysisReport(**report_dict)
+            await new_report.insert()
+            
+            # Add to current user's history
+            user = await User.get(current_user_id)
+            if user and video_id not in user.analyzed_videos:
+                user.analyzed_videos.append(video_id)
+                await user.replace()
+                
+            return new_report
 
     # 2. Fetch Video Metadata from YouTube API
     video_details = youtube_service.get_video_details(video_id)
