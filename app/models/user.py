@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, List
 from beanie import Document
 from pydantic import BaseModel, Field
 # Note: If you have `email-validator` installed, you can use `EmailStr` from pydantic instead of `str` for email fields.
@@ -30,6 +30,7 @@ class User(Document):
     
     # Custom User Data integration
     youtube_channel_data: Optional[YouTubeChannelData] = None
+    analyzed_videos: List[str] = Field(default_factory=list, description="List of Video IDs the user has analyzed")
     
     # General Metadata
     created_at: datetime = Field(default_factory=datetime.utcnow)

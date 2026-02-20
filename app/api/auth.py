@@ -81,6 +81,7 @@ def create_access_token(user: User):
             "gender": user.gender,
             "dob": user.dob,
             "auth_provider": user.auth_provider,
+            "analyzed_videos": user.analyzed_videos,
         }
     }
 
@@ -274,6 +275,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             "gender": user.gender,
             "dob": user.dob,
             "auth_provider": user.auth_provider,
+            "analyzed_videos": user.analyzed_videos,
         }
         
     except jwt.ExpiredSignatureError:

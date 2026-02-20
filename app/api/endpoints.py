@@ -4,6 +4,7 @@ from typing import List
 from collections import Counter
 
 from app.models.schemas import VideoAnalysisReport, CommentBase
+from app.models.user import User
 from app.services.youtube_service import youtube_service
 from app.services.gemini_service import gemini_service
 from app.api.auth import get_current_user, security
@@ -121,5 +122,11 @@ async def analyze_youtube_video(
         await report.replace()
     else:
         await report.insert()
+        
+    # 8. Add to User's history
+    user = await User.get(current_user_id)
+    if user and video_id not in user.analyzed_videos:
+        user.analyzed_videos.append(video_id)
+        await user.replace()
 
     return report
