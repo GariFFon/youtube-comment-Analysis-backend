@@ -155,8 +155,65 @@ async def get_user_history(credentials: HTTPAuthorizationCredentials = Depends(s
             "positive_percentage": r.positive_percentage,
             "negative_percentage": r.negative_percentage,
             "neutral_percentage": r.neutral_percentage,
-            "summary": r.comprehensive_summary
+            "summary": r.comprehensive_summary,
+            "is_public": r.is_public
         })
         
     # Reverse so newest are first
     return history[::-1]
+
+@router.get("/public/reports/all")
+async def get_all_public_reports():
+    """
+    Fetches all reports that have been marked as public by any user.
+    """
+    reports = await VideoAnalysisReport.find({"is_public": True}).to_list()
+    
+    public_reports = []
+    for r in reports:
+        public_reports.append({
+            "video_id": r.video.video_id,
+            "title": r.video.title,
+            "thumbnail_url": r.video.thumbnail_url,
+            "channel_name": r.video.channel_name,
+            "total_comments_analyzed": r.total_comments_analyzed,
+            "positive_percentage": r.positive_percentage,
+            "negative_percentage": r.negative_percentage,
+            "neutral_percentage": r.neutral_percentage,
+            "summary": r.comprehensive_summary,
+            "is_public": True
+        })
+        
+    return public_reports[::-1]
+
+@router.patch("/analyze/report/{video_id}/public")
+async def toggle_report_public(
+    video_id: str,
+    is_public: bool,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Toggles the public visibility of a report. 
+    Only the owner of the report can do this.
+    """
+    user_dict = await get_current_user(credentials)
+    current_user_id = user_dict["id"]
+    
+    report = await VideoAnalysisReport.find_one({"video.video_id": video_id, "user_id": current_user_id})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found or you do not have permission")
+        
+    report.is_public = is_public
+    await report.replace()
+    return {"message": "Success", "is_public": is_public}
+
+@router.get("/public/report/{video_id}", response_model=VideoAnalysisReport)
+async def get_public_report(video_id: str):
+    """
+    Fetches a report without authentication if it has been marked as public.
+    """
+    # Find any report with this video_id that is public
+    report = await VideoAnalysisReport.find_one({"video.video_id": video_id, "is_public": True})
+    if not report:
+        raise HTTPException(status_code=404, detail="Public report not found")
+    return report

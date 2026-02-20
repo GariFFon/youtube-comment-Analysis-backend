@@ -82,3 +82,4 @@ class VideoAnalysisReport(Document):
     spam_percentage: float
     top_topics: List[str]
     comments: List[CommentBase]
+    is_public: bool = False
