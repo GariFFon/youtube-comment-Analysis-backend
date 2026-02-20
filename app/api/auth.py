@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -8,12 +9,15 @@ from typing import Optional
 import os
 import bcrypt
 import random
-import smtplib
+import json
+import urllib.request
+import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from app.models.user import User, OTPRecord
+from app.models.user import User, OTPRecord, YouTubeChannelData
 
 router = APIRouter()
+security = HTTPBearer()
 
 # Get the Google Client ID from environment variable, fallback to dummy
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com")
@@ -24,6 +28,10 @@ ALGORITHM = "HS256"
 
 class GoogleAuthRequest(BaseModel):
     token: str
+
+class LinkYoutubeRequest(BaseModel):
+    app_token: str
+    google_access_token: str
 
 class RegisterRequest(BaseModel):
     first_name: str
@@ -68,7 +76,11 @@ def create_access_token(user: User):
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,
-            "profile_picture": getattr(user, "profile_picture", None)
+            "profile_picture": getattr(user, "profile_picture", None),
+            "youtube_channel_data": user.youtube_channel_data.dict() if getattr(user, "youtube_channel_data", None) else None,
+            "gender": user.gender,
+            "dob": user.dob,
+            "auth_provider": user.auth_provider,
         }
     }
 
@@ -236,3 +248,114 @@ async def verify_google_token(request: GoogleAuthRequest):
 
     except ValueError as e:
         raise HTTPException(status_code=401, detail=f"Invalid Google Token: {str(e)}")
+
+@router.get("/auth/me")
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+            
+        user = await User.get(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        # Return exact same structure as login to easily refresh frontend state
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "profile_picture": getattr(user, "profile_picture", None),
+            "youtube_channel_data": user.youtube_channel_data.dict() if getattr(user, "youtube_channel_data", None) else None,
+            "gender": user.gender,
+            "dob": user.dob,
+            "auth_provider": user.auth_provider,
+        }
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+@router.post("/auth/link-youtube")
+async def link_youtube(request: LinkYoutubeRequest):
+    try:
+        # 1. Decode our app token to find the user
+        payload = jwt.decode(request.app_token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid application token")
+            
+        user = await User.get(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found in system")
+            
+        # 2. Fetch YouTube Data using Google Access Token
+        import ssl
+        # This fixes a common MacOS issue where Python doesn't have local SSL certs installed
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
+        req = urllib.request.Request(
+            "https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true"
+        )
+        req.add_header('Authorization', f'Bearer {request.google_access_token}')
+        req.add_header('Accept', 'application/json')
+        
+        try:
+            with urllib.request.urlopen(req, context=ssl_context) as response:
+                result = json.loads(response.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode()
+            raise HTTPException(status_code=400, detail=f"Failed to fetch YouTube data: {error_body}")
+        except urllib.error.URLError as e:
+            raise HTTPException(status_code=400, detail=f"Network Error reaching YouTube: {str(e.reason)}")
+            
+        items = result.get('items', [])
+        if not items:
+            raise HTTPException(status_code=404, detail="No YouTube channel found for this Google Account")
+            
+        channel = items[0]
+        snippet = channel.get('snippet', {})
+        statistics = channel.get('statistics', {})
+        
+        # 3. Create the YouTubeChannelData object
+        def safe_int(val):
+            if not val:
+                return 0
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return 0
+
+        thumbnails = snippet.get('thumbnails') or {}
+        default_thumb = thumbnails.get('default') or {}
+        
+        yt_data = YouTubeChannelData(
+            channel_id=channel.get('id', ""),
+            title=snippet.get('title', ""),
+            description=snippet.get('description', ""),
+            subscriber_count=safe_int(statistics.get('subscriberCount')),
+            video_count=safe_int(statistics.get('videoCount')),
+            view_count=safe_int(statistics.get('viewCount')),
+            thumbnail_url=default_thumb.get('url', "")
+        )
+        
+        # 4. Save to MongoDB
+        user.youtube_channel_data = yt_data
+        await user.replace()
+        
+        # 5. Return updated token so frontend can display the new data instantly!
+        return create_access_token(user)
+        
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Unexpected error: {str(e)}")
