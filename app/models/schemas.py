@@ -71,6 +71,7 @@ class VideoAnalysisReport(Document):
     class Settings:
         name = "video_reports"
     
+    user_id: Optional[str] = None
     video: VideoBase
     comprehensive_summary: Optional[str] = None
     total_comments_analyzed: int

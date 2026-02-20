@@ -1,23 +1,32 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi.security import HTTPAuthorizationCredentials
 from typing import List
 from collections import Counter
 
 from app.models.schemas import VideoAnalysisReport, CommentBase
 from app.services.youtube_service import youtube_service
 from app.services.gemini_service import gemini_service
+from app.api.auth import get_current_user, security
 
 router = APIRouter()
 
 @router.get("/analyze/{video_id}", response_model=VideoAnalysisReport)
-async def analyze_youtube_video(video_id: str, force_refresh: bool = False):
+async def analyze_youtube_video(
+    video_id: str, 
+    force_refresh: bool = False,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
     """
     Analyzes a YouTube video's comments using Gemini AI.
     If the report already exists in MongoDB, it returns the cached version 
     unless force_refresh is True.
     """
+    user_dict = await get_current_user(credentials)
+    current_user_id = user_dict["id"]
+
     # 1. Check if we already have this in MongoDB!
     if not force_refresh:
-        existing_report = await VideoAnalysisReport.find_one({"video.video_id": video_id})
+        existing_report = await VideoAnalysisReport.find_one({"video.video_id": video_id, "user_id": current_user_id})
         if existing_report:
             return existing_report
 
@@ -91,6 +100,7 @@ async def analyze_youtube_video(video_id: str, force_refresh: bool = False):
 
     # 6. Build the final massive Report
     report = VideoAnalysisReport(
+        user_id=current_user_id,
         video=video_details,
         comprehensive_summary=comprehensive_summary,
         total_comments_analyzed=total_comments,
@@ -105,7 +115,7 @@ async def analyze_youtube_video(video_id: str, force_refresh: bool = False):
 
     # 7. Save this exact structured report natively into MongoDB using Beanie!
     # If we are doing a force_refresh and it exists, we replace it.
-    existing_report = await VideoAnalysisReport.find_one({"video.video_id": video_id})
+    existing_report = await VideoAnalysisReport.find_one({"video.video_id": video_id, "user_id": current_user_id})
     if existing_report:
         report.id = existing_report.id  # Keep the same MongoDB _id
         await report.replace()
